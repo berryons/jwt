@@ -13,6 +13,7 @@ type SuiteJwt struct {
 	suite.Suite
 	accessKey  string
 	refreshKey string
+	jwtUtils   *JwtUtils
 }
 
 func TestRunJwtSuite(t *testing.T) {
@@ -22,6 +23,7 @@ func TestRunJwtSuite(t *testing.T) {
 func (pSelf *SuiteJwt) SetupSuite() {
 	pSelf.accessKey = "test_access_key"
 	pSelf.refreshKey = "test_refresh_key"
+	pSelf.jwtUtils = new(JwtUtils).Init()
 }
 
 func (pSelf *SuiteJwt) Test_GenerateAccessTokenNormal() {
@@ -29,7 +31,7 @@ func (pSelf *SuiteJwt) Test_GenerateAccessTokenNormal() {
 	var expiresAtAsMinutes int = 1
 
 	// when
-	accessToken, err := AccessToken(pSelf.accessKey, expiresAtAsMinutes)
+	accessToken, err := pSelf.jwtUtils.GenerateAccessToken(pSelf.accessKey, expiresAtAsMinutes)
 
 	// then
 	assert.NoError(pSelf.T(), err)
@@ -41,7 +43,7 @@ func (pSelf *SuiteJwt) Test_GenerateRefreshTokenNormal() {
 	var expiresAtAsHours int = 1
 
 	// when
-	refreshToken, err := RefreshToken(pSelf.refreshKey, expiresAtAsHours)
+	refreshToken, err := pSelf.jwtUtils.GenerateRefreshToken(pSelf.refreshKey, expiresAtAsHours)
 
 	// then
 	assert.NoError(pSelf.T(), err)
@@ -51,7 +53,7 @@ func (pSelf *SuiteJwt) Test_GenerateRefreshTokenNormal() {
 func (pSelf *SuiteJwt) Test_VerifyAccessTokenNormal() {
 	// given
 	var expiresAtAsMinutes int = 1
-	accessToken, err := AccessToken(pSelf.accessKey, expiresAtAsMinutes)
+	accessToken, err := pSelf.jwtUtils.GenerateAccessToken(pSelf.accessKey, expiresAtAsMinutes)
 	accessTokenFromClient := "Bearer " + accessToken
 
 	parts := strings.Split(accessTokenFromClient, " ")
@@ -62,7 +64,7 @@ func (pSelf *SuiteJwt) Test_VerifyAccessTokenNormal() {
 	seperatedAccessToken := parts[1]
 
 	// when
-	httpCode, msg := VerifyToken(pSelf.accessKey, seperatedAccessToken)
+	httpCode, msg := pSelf.jwtUtils.VerifyToken(pSelf.accessKey, seperatedAccessToken)
 
 	// then
 	assert.Empty(pSelf.T(), err)
@@ -73,10 +75,10 @@ func (pSelf *SuiteJwt) Test_VerifyAccessTokenNormal() {
 func (pSelf *SuiteJwt) Test_VerifyRefreshTokenNormal() {
 	// given
 	var expiresAtAsHours int = 1
-	refreshToken, err := RefreshToken(pSelf.refreshKey, expiresAtAsHours)
+	refreshToken, err := pSelf.jwtUtils.GenerateRefreshToken(pSelf.refreshKey, expiresAtAsHours)
 
 	// when
-	httpCode, msg := VerifyToken(pSelf.refreshKey, refreshToken)
+	httpCode, msg := pSelf.jwtUtils.VerifyToken(pSelf.refreshKey, refreshToken)
 
 	// then
 	assert.Empty(pSelf.T(), err)
@@ -86,7 +88,7 @@ func (pSelf *SuiteJwt) Test_VerifyRefreshTokenNormal() {
 
 func (pSelf *SuiteJwt) Test_VerifyTokenWithNullKeyError() {
 	// when
-	httpCode, msg := VerifyToken("", "")
+	httpCode, msg := pSelf.jwtUtils.VerifyToken("", "")
 
 	// then
 	assert.Equal(pSelf.T(), "Key is null", msg)
@@ -95,7 +97,7 @@ func (pSelf *SuiteJwt) Test_VerifyTokenWithNullKeyError() {
 
 func (pSelf *SuiteJwt) Test_VerifyTokenWithNullTokenError() {
 	// when
-	httpCode, msg := VerifyToken(pSelf.accessKey, "")
+	httpCode, msg := pSelf.jwtUtils.VerifyToken(pSelf.accessKey, "")
 
 	// then
 	assert.Equal(pSelf.T(), "Token is null", msg)
@@ -105,10 +107,10 @@ func (pSelf *SuiteJwt) Test_VerifyTokenWithNullTokenError() {
 func (pSelf *SuiteJwt) Test_VerifyTokenWithIncorrectKeyError() {
 	// given
 	var expiresAtAsHours int = 1
-	refreshToken, err := RefreshToken(pSelf.refreshKey, expiresAtAsHours)
+	refreshToken, err := pSelf.jwtUtils.GenerateRefreshToken(pSelf.refreshKey, expiresAtAsHours)
 
 	// when
-	httpCode, msg := VerifyToken("IncorrectKey", refreshToken)
+	httpCode, msg := pSelf.jwtUtils.VerifyToken("IncorrectKey", refreshToken)
 
 	// then
 	assert.Empty(pSelf.T(), err)
@@ -119,10 +121,10 @@ func (pSelf *SuiteJwt) Test_VerifyTokenWithIncorrectKeyError() {
 func (pSelf *SuiteJwt) Test_VerifyTokenWithExpiredTokenError() {
 	// given
 	var expiresAtAsMinutes int = -1
-	accessToken, err := AccessToken(pSelf.accessKey, expiresAtAsMinutes)
+	accessToken, err := pSelf.jwtUtils.GenerateAccessToken(pSelf.accessKey, expiresAtAsMinutes)
 
 	// when
-	httpCode, msg := VerifyToken(pSelf.accessKey, accessToken)
+	httpCode, msg := pSelf.jwtUtils.VerifyToken(pSelf.accessKey, accessToken)
 
 	// then
 	assert.Empty(pSelf.T(), err)
@@ -133,10 +135,10 @@ func (pSelf *SuiteJwt) Test_VerifyTokenWithExpiredTokenError() {
 func (pSelf *SuiteJwt) Test_ExtractClaimsNormal() {
 	// given
 	var expiresAtAsHours int = 1
-	refreshToken, err := RefreshToken(pSelf.refreshKey, expiresAtAsHours)
+	refreshToken, err := pSelf.jwtUtils.GenerateRefreshToken(pSelf.refreshKey, expiresAtAsHours)
 
 	// when
-	refreshTokenClaims, err := ExtractClaims(pSelf.refreshKey, refreshToken)
+	refreshTokenClaims, err := pSelf.jwtUtils.ExtractClaimsFromToken(pSelf.refreshKey, refreshToken)
 
 	// then
 	assert.Empty(pSelf.T(), err)
@@ -146,10 +148,10 @@ func (pSelf *SuiteJwt) Test_ExtractClaimsNormal() {
 func (pSelf *SuiteJwt) Test_ExtractClaimsWithIncorrectKeyError() {
 	// given
 	var expiresAtAsHours int = 1
-	refreshToken, err := RefreshToken(pSelf.refreshKey, expiresAtAsHours)
+	refreshToken, err := pSelf.jwtUtils.GenerateRefreshToken(pSelf.refreshKey, expiresAtAsHours)
 
 	// when
-	refreshTokenClaims, err := ExtractClaims("IncorrectKey", refreshToken)
+	refreshTokenClaims, err := pSelf.jwtUtils.ExtractClaimsFromToken("IncorrectKey", refreshToken)
 
 	// then
 	assert.Error(pSelf.T(), err, "signature is invalid: signature is invalid")

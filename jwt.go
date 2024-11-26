@@ -8,24 +8,6 @@ import (
 	"time"
 )
 
-var instance IJwtUtils = new(jwtUtils)
-
-func AccessToken(jwtAccessKey string, expiresAtAsMinutes int) (string, error) {
-	return instance.GenerateAccessToken(jwtAccessKey, expiresAtAsMinutes)
-}
-
-func RefreshToken(jwtRefreshKey string, expiresAtAsHours int) (string, error) {
-	return instance.GenerateRefreshToken(jwtRefreshKey, expiresAtAsHours)
-}
-
-func VerifyToken(key, tokenAsString string) (int, string) {
-	return instance.VerifyToken(key, tokenAsString)
-}
-
-func ExtractClaims(key, tokenAsString string) (*TokenClaims, error) {
-	return instance.ExtractClaimsFromToken(key, tokenAsString)
-}
-
 type IJwtUtils interface {
 	GenerateAccessToken(jwtAccessKey string, expiresAtAsMinutes int) (string, error)
 	GenerateRefreshToken(jwtRefreshKey string, expiresAtAsHours int) (string, error)
@@ -37,11 +19,15 @@ type TokenClaims struct {
 	jwt.RegisteredClaims
 }
 
-type jwtUtils struct {
+type JwtUtils struct {
+}
+
+func (pSelf *JwtUtils) Init() *JwtUtils {
+	return pSelf
 }
 
 // GenerateAccessToken - Generate Json Web Token of access.
-func (pSelf *jwtUtils) GenerateAccessToken(jwtAccessKey string, expiresAtAsMinutes int) (string, error) {
+func (pSelf *JwtUtils) GenerateAccessToken(jwtAccessKey string, expiresAtAsMinutes int) (string, error) {
 	claims := TokenClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresAtAsMinutes) * time.Minute)),
@@ -54,7 +40,7 @@ func (pSelf *jwtUtils) GenerateAccessToken(jwtAccessKey string, expiresAtAsMinut
 }
 
 // GenerateRefreshToken - Generate Json Web Token of refresh
-func (pSelf *jwtUtils) GenerateRefreshToken(jwtRefreshKey string, expiresAtAsHours int) (string, error) {
+func (pSelf *JwtUtils) GenerateRefreshToken(jwtRefreshKey string, expiresAtAsHours int) (string, error) {
 	claims := TokenClaims{
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(expiresAtAsHours) * time.Hour)),
@@ -78,7 +64,7 @@ func generateJsonWebToken(key string, claims jwt.Claims) (string, error) {
 }
 
 // VerifyToken - Verify Json Web Token from token as string
-func (pSelf *jwtUtils) VerifyToken(key, tokenAsString string) (int, string) {
+func (pSelf *JwtUtils) VerifyToken(key, tokenAsString string) (int, string) {
 	if len(key) <= 0 {
 		return http.StatusUnauthorized, "Key is null"
 	}
@@ -111,7 +97,7 @@ func (pSelf *jwtUtils) VerifyToken(key, tokenAsString string) (int, string) {
 }
 
 // ExtractClaimsFromToken - Extract claims from token as string
-func (pSelf *jwtUtils) ExtractClaimsFromToken(key, tokenAsString string) (*TokenClaims, error) {
+func (pSelf *JwtUtils) ExtractClaimsFromToken(key, tokenAsString string) (*TokenClaims, error) {
 	claims := &TokenClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenAsString, claims, func(token *jwt.Token) (interface{}, error) {
